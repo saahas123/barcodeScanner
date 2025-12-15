@@ -1,39 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Barcode Scanner Test</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iPhone Barcode Scanner</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 20px; }
+    video { width: 90%; max-width: 400px; border: 2px solid black; }
+    #result { font-size: 1.2em; margin-top: 10px; }
+  </style>
+  <!-- ZXing library for 1D and QR codes -->
+  <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 </head>
 <body>
-  <h1>Scan a Barcode</h1>
-  <div id="video" style="width: 300px; height: 200px; border: 1px solid black;"></div>
-  <p id="result">Barcode result will appear here</p>
+  <h1>Barcode / QR Scanner</h1>
+  <video id="video" autoplay></video>
+  <p id="result">Scanning...</p>
 
   <script>
-    Quagga.init({
-      inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        target: document.querySelector('#video'),
-        constraints: {
-          facingMode: "environment" // back camera
-        }
-      },
-      decoder: {
-        readers: ["code_128_reader", "ean_reader", "upc_reader"]
-      }
-    }, function(err) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      Quagga.start();
-    });
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    const videoElement = document.getElementById('video');
+    const resultElement = document.getElementById('result');
 
-    Quagga.onDetected(function(result) {
-      document.getElementById('result').textContent = "Detected: " + result.codeResult.code;
-      console.log("Detected barcode:", result.codeResult.code);
-    });
+    // Start the camera
+    codeReader
+      .listVideoInputDevices()
+      .then(videoInputDevices => {
+        // Use the back camera if available
+        const backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back')) || videoInputDevices[0];
+        return codeReader.decodeFromVideoDevice(backCamera.deviceId, videoElement, (result, err) => {
+          if (result) {
+            resultElement.textContent = "Detected: " + result.getText();
+            console.log("Detected barcode:", result.getText());
+          }
+          if (err && !(err instanceof ZXing.NotFoundException)) {
+            console.error(err);
+          }
+        });
+      })
+      .catch(err => console.error(err));
   </script>
 </body>
 </html>
